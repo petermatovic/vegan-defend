@@ -72,8 +72,8 @@ function App() {
       setActiveMyth({
         id: "fallback",
         query: `Zachytené: "${text}"`,
-        reality: "Zatiaľ nemám v databáze odpoveď na túto špecifickú otázku, ale pamätajte: rastlinná strava vo všeobecnosti znižuje riziko chronických ochorení a je plne schopná pokryť výživové požiadavky človeka vo všetkých fázach života. (Stanovisko Americkej dietetickej asociácie).",
-        sources: ["Academy of Nutrition and Dietetics"],
+        reality: "Tento špecifický argument ešte nemám v prémiovej databáze. Ale všeobecne platí: rastlinná strava znižuje riziko chronických ochorení a je plne schopná pokryť výživové požiadavky človeka vo všetkých fázach života. (Stanovisko Americkej dietetickej asociácie).",
+        sources: [{ title: "Academy of Nutrition and Dietetics Position", url: "https://pubmed.ncbi.nlm.nih.gov/27886704/" }],
         chartType: "none",
         image: "🌱"
       });
@@ -189,7 +189,11 @@ function App() {
                 <h4 className="sources-title"><BookOpen size={16}/> Vedecké zdroje:</h4>
                 <ul className="sources-list">
                   {activeMyth.sources.map((source, idx) => (
-                    <li key={idx}>• {source}</li>
+                    <li key={idx}>
+                      • <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary)] hover:underline font-medium break-words">
+                        {source.title}
+                      </a>
+                    </li>
                   ))}
                 </ul>
               </div>
