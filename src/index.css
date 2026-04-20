@@ -1,0 +1,253 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap');
+
+:root {
+  --color-bg: #f4f6f4;
+  --color-primary: #2e5c40; /* Dark emerald */
+  --color-secondary: #588157; /* Sage */
+  --color-accent: #a3b18a;
+  --color-text: #1a201c;
+  --color-text-light: #526f59;
+  --color-card-bg: rgba(255, 255, 255, 0.7);
+  --color-card-border: rgba(255, 255, 255, 0.8);
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --shadow-soft: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--color-bg);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(163, 177, 138, 0.4) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(88, 129, 87, 0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(46, 92, 64, 0.1) 0px, transparent 50%);
+  color: var(--color-text);
+  min-height: 100vh;
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+.app-container {
+  margin: 0 auto;
+  padding: 2rem;
+  max-width: 1200px;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: var(--color-card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: 2rem;
+}
+
+.hero-section {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+  letter-spacing: -1px;
+}
+
+.hero-subtitle {
+  color: var(--color-text-light);
+  font-size: 1.2rem;
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+}
+
+/* Voice & Search Input */
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border-radius: 50px;
+  padding: 8px 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  max-width: 600px;
+  margin: 0 auto;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--color-secondary);
+  box-shadow: 0 4px 20px rgba(88, 129, 87, 0.15);
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1.1rem;
+  padding: 8px;
+  color: var(--color-text);
+  background: transparent;
+}
+
+.voice-btn {
+  background: var(--color-bg);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  transition: all 0.2s ease;
+}
+
+.voice-btn:hover {
+  background: #e8ece9;
+}
+
+.voice-btn.recording {
+  background: #fdf2f8;
+  color: #db2777;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(219, 39, 119, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0); }
+}
+
+/* Myth Grid */
+.myth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.myth-btn {
+  background: white;
+  padding: 1.2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid #e2e8f0;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.myth-btn:hover, .myth-btn.active {
+  border-color: var(--color-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(88, 129, 87, 0.1);
+}
+
+.myth-btn.active {
+  background: var(--color-secondary);
+  color: white;
+}
+
+.myth-icon {
+  font-size: 1.5rem;
+}
+
+/* Response Section */
+.response-container {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.response-header {
+  border-bottom: 2px solid rgba(163, 177, 138, 0.3);
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.myth-statement {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.science-fact {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  margin-bottom: 2rem;
+}
+
+.sources-box {
+  background: rgba(163, 177, 138, 0.15);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.sources-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sources-list {
+  list-style: none;
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+}
+
+.sources-list li {
+  margin-bottom: 4px;
+}
+
+.chart-container {
+  height: 300px;
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.listening-text {
+  position: absolute;
+  top: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.85rem;
+  color: var(--color-secondary);
+  white-space: nowrap;
+}
