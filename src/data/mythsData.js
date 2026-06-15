@@ -1,4 +1,6 @@
-export const mythsData = [
+import { mythsExtra } from "./mythsExtra";
+
+const baseMyths = [
   {
     id: "protein",
     keywords: ["proteín", "bielkoviny", "svaly", "mäso", "protein", "bielkovina", "narastú", "slabý"],
@@ -484,4 +486,56 @@ export const mythsData = [
     chartType: "none",
     image: "💊"
   }
+];
+
+// Kategórie pre pôvodné mýty (nové už majú vlastnú `category`).
+const CATEGORY_BY_ID = {
+  protein: "Výživa",
+  calcium: "Výživa",
+  b12: "Výživa",
+  iron: "Výživa",
+  omega3: "Výživa",
+  iodine_thyroid: "Výživa",
+  anti_nutrients: "Výživa",
+  collagen: "Zdravie",
+  cholesterol: "Zdravie",
+  fatigue: "Zdravie",
+  children_nutrition: "Zdravie",
+  athletes_weak: "Zdravie",
+  fake_meat_chemicals: "Výživa",
+  supplements_everything: "Výživa",
+  soy_estrogen: "Výživa",
+  canines: "Evolúcia",
+  meat_evolution: "Evolúcia",
+  plants_pain: "Etika",
+  personal_choice: "Etika",
+  free_range: "Etika",
+  honey: "Etika",
+  cows_explode: "Etika",
+  circle_of_life: "Etika",
+  culture_tradition: "Etika",
+  overpopulation_cows: "Etika",
+  crop_deaths: "Etika",
+  soy_amazon: "Ekológia",
+  world_hunger: "Ekológia",
+  expensive: "Praktické",
+  inuit_geography: "Praktické",
+};
+
+const withCategory = (m) => ({
+  ...m,
+  category: m.category || CATEGORY_BY_ID[m.id] || "Ostatné",
+});
+
+export const mythsData = [...baseMyths, ...mythsExtra].map(withCategory);
+
+// Poradie kategórií pre zobrazenie filtrov.
+export const categories = [
+  "Výživa",
+  "Zdravie",
+  "Etika",
+  "Ekológia",
+  "Praktické",
+  "Evolúcia",
+  "Argumenty",
 ];

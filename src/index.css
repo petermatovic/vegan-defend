@@ -80,6 +80,10 @@ button {
   margin: 0 auto 2rem auto;
 }
 
+.hero-accent {
+  color: var(--color-secondary);
+}
+
 /* Voice & Search Input */
 .input-wrapper {
   display: flex;
@@ -102,12 +106,34 @@ button {
 
 .search-input {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   font-size: 1.1rem;
   padding: 8px;
   color: var(--color-text);
   background: transparent;
+}
+
+.submit-btn,
+.clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  color: var(--color-primary);
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.clear-btn {
+  color: var(--color-text-light);
+}
+
+.submit-btn:hover,
+.clear-btn:hover {
+  background: var(--color-bg);
 }
 
 .voice-btn {
@@ -138,10 +164,57 @@ button {
   100% { box-shadow: 0 0 0 0 rgba(219, 39, 119, 0); }
 }
 
+/* Category filter bar */
+.category-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.category-chip {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: var(--color-text-light);
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.category-chip:hover {
+  border-color: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.category-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.result-count {
+  text-align: center;
+  color: var(--color-text-light);
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--color-text-light);
+  padding: 2rem;
+}
+
 /* Myth Grid */
 .myth-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin-bottom: 3rem;
 }
@@ -179,7 +252,93 @@ button {
 
 /* Response Section */
 .response-container {
+  position: relative;
   animation: fadeIn 0.4s ease-out forwards;
+  margin-bottom: 3rem;
+}
+
+.response-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--color-text-light);
+  background: rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.response-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--color-primary);
+}
+
+.response-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 900px) {
+  .response-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+}
+
+.quote-icon {
+  color: var(--color-accent);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.shield-icon {
+  display: inline;
+  vertical-align: middle;
+  color: var(--color-secondary);
+  margin-right: 0.5rem;
+}
+
+.chart-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-title {
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.chart-loading {
+  color: var(--color-text-light);
+  text-align: center;
+  padding: 2rem;
+}
+
+.source-link {
+  color: var(--color-primary);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+}
+
+.app-footer {
+  text-align: center;
+  color: var(--color-text-light);
+  font-size: 0.85rem;
+  padding: 2rem 0 1rem;
+  opacity: 0.8;
 }
 
 @keyframes fadeIn {
@@ -191,6 +350,7 @@ button {
   border-bottom: 2px solid rgba(163, 177, 138, 0.3);
   padding-bottom: 1.5rem;
   margin-bottom: 1.5rem;
+  padding-right: 2.5rem;
 }
 
 .myth-statement {
@@ -250,4 +410,26 @@ button {
   font-size: 0.85rem;
   color: var(--color-secondary);
   white-space: nowrap;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .app-container {
+    padding: 1.25rem;
+  }
+  .hero-title {
+    font-size: 2.5rem;
+  }
+  .hero-subtitle {
+    font-size: 1.05rem;
+  }
+  .glass-panel {
+    padding: 1.25rem;
+  }
+  .myth-statement {
+    font-size: 1.2rem;
+  }
+  .science-fact {
+    font-size: 1.05rem;
+  }
 }
