@@ -1,4 +1,4 @@
-import { mythsExtra } from "./mythsExtra";
+import { mythsExtra } from "./mythsExtra.js";
 
 const baseMyths = [
   {
@@ -484,7 +484,7 @@ const baseMyths = [
       { title: "Harvard Health: Do we really need supplements?", url: "https://www.health.harvard.edu/" }
     ],
     chartType: "none",
-    image: "💊"
+    image: "🧾"
   }
 ];
 

@@ -121,7 +121,7 @@ export const mythsExtra = [
       { title: "NCBI: Vitamin K2 sources and metabolism", url: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6770193/" }
     ],
     chartType: "none",
-    image: "🦴"
+    image: "🥬"
   },
   {
     id: "complete_protein",
