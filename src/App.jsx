@@ -14,12 +14,12 @@ import {
   X,
   Share2,
   Copy,
-  Check,
   Shuffle,
   Moon,
   Sun,
 } from "lucide-react";
 import { mythsData, categories } from "./data/mythsData";
+import { UI, CATEGORY_LABELS, LANGS } from "./i18n.js";
 import MythChart from "./components/MythChart";
 import "./index.css";
 
@@ -30,22 +30,25 @@ const normalize = (str) =>
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "");
 
-// Hrubý "stem" – orežeme na prvých 5 znakov, aby sme zachytili slovenské
-// skloňovanie (rakovina / rakovinu / rakoviny → "rakov").
+// Hrubý "stem" – orežeme na prvých 5 znakov (slovenské skloňovanie).
 const stem = (w) => w.slice(0, 5);
 
-// Rozdelíme text na zmysluplné slová (3+ znakov).
 const tokenize = (str) =>
   normalize(str)
-    .split(/[^a-z0-9]+/)
+    .split(/[^a-z0-9а-я]+/i)
     .filter((w) => w.length >= 3);
 
-// Odkaz na konkrétny mýtus (na zdieľanie).
 const mythLink = (id) =>
   `${window.location.origin}${window.location.pathname}?m=${id}`;
 
+const FALLBACK_SOURCE = {
+  title: "Academy of Nutrition and Dietetics Position",
+  url: "https://pubmed.ncbi.nlm.nih.gov/27886704/",
+};
+
 function App() {
-  const [activeMyth, setActiveMyth] = useState(null);
+  const [activeId, setActiveId] = useState(null);
+  const [fallbackText, setFallbackText] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [activeCategory, setActiveCategory] = useState("Všetky");
   const [isListening, setIsListening] = useState(false);
@@ -60,46 +63,58 @@ function App() {
         : "light")
     );
   });
+  const [lang, setLang] = useState(() => {
+    if (typeof window === "undefined") return "sk";
+    const saved = localStorage.getItem("vd-lang");
+    if (saved && UI[saved]) return saved;
+    const nav = (navigator.language || "sk").slice(0, 2);
+    return UI[nav] ? nav : "sk";
+  });
+
+  // Preklady (EN/BG dáta) sa načítavajú lenivo – slovenská verzia ich nepotrebuje.
+  const [i18n, setI18n] = useState(null);
+
   const recognitionRef = useRef(null);
   const responseRef = useRef(null);
   const toastTimer = useRef(null);
 
-  // ---- Téma (svetlá/tmavá) -------------------------------------------------
+  const t = UI[lang];
+
+  // Lenivé načítanie prekladového balíka pri prepnutí na EN/BG.
+  useEffect(() => {
+    if (lang === "sk" || i18n) return;
+    let alive = true;
+    import("./data/translations/index.js").then((mod) => {
+      if (alive) setI18n(mod);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lang, i18n]);
+
+  // Mýty preložené do aktuálneho jazyka (kým sa preklad načíta, ukáže sa SK).
+  const localizedMyths = useMemo(() => {
+    if (lang === "sk" || !i18n) return mythsData;
+    return mythsData.map((m) => i18n.localizeMyth(m, lang));
+  }, [lang, i18n]);
+
+  // ---- Téma + jazyk (atribúty dokumentu) ----------------------------------
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("vd-theme", theme);
   }, [theme]);
 
-  // ---- Krátke oznámenie (toast) -------------------------------------------
-  const flash = useCallback((msg) => {
-    setToast(msg);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 2200);
-  }, []);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    localStorage.setItem("vd-lang", lang);
+  }, [lang]);
 
-  // ---- Otvorenie / zatvorenie mýtu + synchronizácia s URL ------------------
-  const openMyth = useCallback((myth, { updateUrl = true } = {}) => {
-    setActiveMyth(myth);
-    if (updateUrl && myth && myth.id !== "fallback") {
-      const url = new URL(window.location);
-      url.searchParams.set("m", myth.id);
-      window.history.pushState({ m: myth.id }, "", url);
-    }
-  }, []);
-
-  const closeMyth = useCallback(() => {
-    setActiveMyth(null);
-    const url = new URL(window.location);
-    url.searchParams.delete("m");
-    window.history.pushState({}, "", url);
-  }, []);
-
-  // Štruktúrované dáta pre Google (FAQPage) – šanca na rich results vo výsledkoch.
+  // Štruktúrované dáta pre Google (FAQPage).
   useEffect(() => {
     const faq = {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      mainEntity: mythsData
+      mainEntity: localizedMyths
         .filter((m) => m.id !== "fallback")
         .map((m) => ({
           "@type": "Question",
@@ -115,83 +130,127 @@ function App() {
       document.head.appendChild(el);
     }
     el.textContent = JSON.stringify(faq);
+  }, [localizedMyths]);
+
+  // ---- Krátke oznámenie (toast) -------------------------------------------
+  const flash = useCallback((msg) => {
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(""), 2200);
   }, []);
 
-  // Pri načítaní (a pri tlačidlách späť/vpred) otvor mýtus podľa URL.
+  // ---- Otvorenie / zatvorenie mýtu + synchronizácia s URL ------------------
+  const openMyth = useCallback((myth, { updateUrl = true } = {}) => {
+    setFallbackText(null);
+    setActiveId(myth.id);
+    if (updateUrl && myth.id !== "fallback") {
+      const url = new URL(window.location);
+      url.searchParams.set("m", myth.id);
+      window.history.pushState({ m: myth.id }, "", url);
+    }
+  }, []);
+
+  const closeMyth = useCallback(() => {
+    setActiveId(null);
+    setFallbackText(null);
+    const url = new URL(window.location);
+    url.searchParams.delete("m");
+    window.history.pushState({}, "", url);
+  }, []);
+
+  // Pri načítaní (a tlačidlách späť/vpred) otvor mýtus podľa URL.
   useEffect(() => {
     const applyFromUrl = () => {
       const id = new URLSearchParams(window.location.search).get("m");
-      const found = id ? mythsData.find((m) => m.id === id) : null;
-      setActiveMyth(found || null);
+      setFallbackText(null);
+      setActiveId(id && mythsData.some((m) => m.id === id) ? id : null);
     };
     applyFromUrl();
     window.addEventListener("popstate", applyFromUrl);
     return () => window.removeEventListener("popstate", applyFromUrl);
   }, []);
 
-  // Predpočítaný vyhľadávací index pre rýchle a presné hľadanie.
-  const searchIndex = useMemo(
-    () =>
-      mythsData.map((myth) => {
-        const normKeywords = (myth.keywords || []).map(normalize);
-        const phrases = normKeywords.filter((kw) => kw.includes(" "));
-        const stems = new Set();
-        for (const kw of normKeywords) {
-          for (const w of kw.split(/[^a-z0-9]+/)) {
-            if (w.length >= 3) stems.add(stem(w));
-          }
-        }
-        return { myth, phrases, stems };
-      }),
-    []
-  );
+  // Aktuálne zobrazený (preložený) mýtus.
+  const activeMyth = useMemo(() => {
+    if (fallbackText !== null) {
+      return {
+        id: "fallback",
+        query: `${t.fallbackPrefix}: "${fallbackText}"`,
+        reality: t.fallbackReality,
+        sources: [FALLBACK_SOURCE],
+        chartType: "none",
+        image: "🌱",
+      };
+    }
+    if (!activeId) return null;
+    return localizedMyths.find((m) => m.id === activeId) || null;
+  }, [activeId, fallbackText, localizedMyths, t]);
 
-  // Skórované hľadanie – nájde najlepšiu zhodu, nie len prvú.
+  // Vyhľadávací index s TF-IDF váhami – funguje v SK aj EN/BG.
+  // Vzácne slová (rakovina, cancer, vápnik) vážia viac než časté (mäso, meat).
+  const searchIndex = useMemo(() => {
+    const docs = localizedMyths.map((myth) => {
+      const titleStems = new Set(tokenize(myth.query).map(stem));
+      const textStems = new Set(
+        [
+          ...tokenize(myth.query),
+          ...tokenize(myth.reality),
+          ...(myth.keywords || []).flatMap((k) => tokenize(k)),
+        ].map(stem)
+      );
+      const phrases = (myth.keywords || [])
+        .map(normalize)
+        .filter((kw) => kw.includes(" "));
+      return { myth, titleStems, textStems, phrases };
+    });
+
+    const N = docs.length || 1;
+    const df = {};
+    for (const d of docs) for (const s of d.textStems) df[s] = (df[s] || 0) + 1;
+    const idf = {};
+    for (const s in df) idf[s] = Math.log(1 + N / df[s]);
+
+    return { docs, idf };
+  }, [localizedMyths]);
+
+  // Skórované hľadanie – TF-IDF + bonus za zhodu v otázke + SK frázy.
   const matchMyth = useCallback(
     (text) => {
       if (!text.trim()) return;
       const q = normalize(text);
       const qStems = [...new Set(tokenize(text).map(stem))];
+      const { docs, idf } = searchIndex;
+      const defaultIdf = Math.log(2);
 
       let best = null;
       let bestScore = 0;
-      for (const entry of searchIndex) {
+      for (const d of docs) {
         let score = 0;
-        for (const phrase of entry.phrases) {
+        for (const phrase of d.phrases) {
           if (q.includes(phrase)) score += 5;
         }
         for (const s of qStems) {
-          if (entry.stems.has(s)) score += 2;
+          const w = idf[s] ?? defaultIdf;
+          if (d.titleStems.has(s)) score += w * 3;
+          else if (d.textStems.has(s)) score += w;
         }
         if (score > bestScore) {
           bestScore = score;
-          best = entry.myth;
+          best = d.myth;
         }
       }
 
       if (best) {
         openMyth(best);
       } else {
-        setActiveMyth({
-          id: "fallback",
-          query: `Zachytené: "${text}"`,
-          reality:
-            "Tento konkrétny argument zatiaľ nemám v databáze. Vo všeobecnosti však platí: dobre zostavená rastlinná strava znižuje riziko chronických ochorení a podľa stanoviska Academy of Nutrition and Dietetics je vhodná pre všetky fázy života. Skús preformulovať mýtus alebo vyber niektorý z kariet nižšie.",
-          sources: [
-            {
-              title: "Academy of Nutrition and Dietetics Position",
-              url: "https://pubmed.ncbi.nlm.nih.gov/27886704/",
-            },
-          ],
-          chartType: "none",
-          image: "🌱",
-        });
+        setActiveId(null);
+        setFallbackText(text);
       }
     },
     [searchIndex, openMyth]
   );
 
-  // Inicializácia rozpoznávania reči (Web Speech API).
+  // Rozpoznávanie reči (Web Speech API) – jazyk podľa výberu.
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -199,7 +258,7 @@ function App() {
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
-    recognition.lang = "sk-SK";
+    recognition.lang = t.speechLang;
     recognition.interimResults = false;
 
     recognition.onresult = (event) => {
@@ -212,9 +271,9 @@ function App() {
     recognition.onend = () => setIsListening(false);
 
     recognitionRef.current = recognition;
-  }, [matchMyth]);
+  }, [matchMyth, t.speechLang]);
 
-  // Po vybratí mýtu jemne odscrolluj k odpovedi (hlavne na mobile).
+  // Po vybratí mýtu jemne odscrolluj k odpovedi.
   useEffect(() => {
     if (activeMyth && responseRef.current) {
       responseRef.current.scrollIntoView({
@@ -240,15 +299,14 @@ function App() {
   };
 
   const showRandom = () => {
-    const m = mythsData[Math.floor(Math.random() * mythsData.length)];
+    const m = localizedMyths[Math.floor(Math.random() * localizedMyths.length)];
     openMyth(m);
   };
 
   // ---- Zdieľanie a kopírovanie --------------------------------------------
   const buildShareText = (m) => {
-    const src =
-      m.sources?.map((s) => `• ${s.title}: ${s.url}`).join("\n") || "";
-    return `❝ ${m.query} ❞\n\n✅ ${m.reality}\n\n📚 Zdroje:\n${src}\n\n🌿 Vegan Defender · ${mythLink(
+    const src = m.sources?.map((s) => `• ${s.title}: ${s.url}`).join("\n") || "";
+    return `❝ ${m.query} ❞\n\n✅ ${m.reality}\n\n📚 ${t.sources}\n${src}\n\n🌿 Vegan Defender · ${mythLink(
       m.id
     )}`;
   };
@@ -256,9 +314,9 @@ function App() {
   const copyAnswer = async (m) => {
     try {
       await navigator.clipboard.writeText(buildShareText(m));
-      flash("Odpoveď skopírovaná do schránky");
+      flash(t.toastCopied);
     } catch {
-      flash("Kopírovanie sa nepodarilo");
+      flash(t.toastFail);
     }
   };
 
@@ -266,20 +324,16 @@ function App() {
     const url = mythLink(m.id);
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: "Vegan Defender",
-          text: `❝ ${m.query} ❞`,
-          url,
-        });
+        await navigator.share({ title: "Vegan Defender", text: `❝ ${m.query} ❞`, url });
       } catch {
-        /* používateľ zrušil zdieľanie */
+        /* zrušené */
       }
     } else {
       try {
         await navigator.clipboard.writeText(url);
-        flash("Odkaz skopírovaný do schránky");
+        flash(t.toastLink);
       } catch {
-        flash("Kopírovanie sa nepodarilo");
+        flash(t.toastFail);
       }
     }
   };
@@ -287,7 +341,7 @@ function App() {
   // Filtrovanie kariet podľa kategórie a textu.
   const filteredMyths = useMemo(() => {
     const q = normalize(searchText);
-    return mythsData.filter((myth) => {
+    return localizedMyths.filter((myth) => {
       const inCategory =
         activeCategory === "Všetky" || myth.category === activeCategory;
       if (!inCategory) return false;
@@ -298,34 +352,48 @@ function App() {
         (myth.keywords || []).some((kw) => normalize(kw).includes(q))
       );
     });
-  }, [activeCategory, searchText]);
+  }, [activeCategory, searchText, localizedMyths]);
 
-  // Počty mýtov v jednotlivých kategóriách (pre štítky).
   const categoryCounts = useMemo(() => {
     const counts = {};
     for (const m of mythsData) counts[m.category] = (counts[m.category] || 0) + 1;
     return counts;
   }, []);
 
-  // Súvisiace mýty (rovnaká kategória) pod odpoveďou.
   const relatedMyths = useMemo(() => {
     if (!activeMyth || activeMyth.id === "fallback") return [];
-    return mythsData
+    return localizedMyths
       .filter((m) => m.category === activeMyth.category && m.id !== activeMyth.id)
       .slice(0, 3);
-  }, [activeMyth]);
+  }, [activeMyth, localizedMyths]);
 
   const hasVoice =
     typeof window !== "undefined" &&
     (window.SpeechRecognition || window.webkitSpeechRecognition);
 
+  const catLabel = (key) => CATEGORY_LABELS[lang]?.[key] || key;
+
   return (
     <div className="app-container">
+      {/* Horné ovládanie: jazyk + téma */}
+      <div className="lang-switch" role="group" aria-label={t.langAria}>
+        {LANGS.map((l) => (
+          <button
+            key={l.code}
+            className={`lang-btn ${lang === l.code ? "active" : ""}`}
+            onClick={() => setLang(l.code)}
+            title={l.name}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+
       <button
         className="theme-toggle"
-        onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-        aria-label="Prepnúť svetlý/tmavý režim"
-        title="Svetlý / tmavý režim"
+        onClick={() => setTheme((p) => (p === "dark" ? "light" : "dark"))}
+        aria-label={t.themeTitle}
+        title={t.themeTitle}
       >
         {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
       </button>
@@ -335,10 +403,7 @@ function App() {
         <h1 className="hero-title">
           Vegan <span className="hero-accent">Defender</span>
         </h1>
-        <p className="hero-subtitle">
-          Generátor vedecky podložených odpovedí na najčastejšie mýty a
-          domnienky o rastlinnej strave.
-        </p>
+        <p className="hero-subtitle">{t.subtitle}</p>
 
         <form onSubmit={handleSearchSubmit} className="input-wrapper">
           {hasVoice && (
@@ -346,8 +411,8 @@ function App() {
               type="button"
               onClick={toggleListen}
               className={`voice-btn ${isListening ? "recording" : ""}`}
-              title="Povedz mýtus"
-              aria-label="Hlasové zadanie mýtu"
+              title={t.voiceTitle}
+              aria-label={t.voiceAria}
             >
               <Mic size={20} />
             </button>
@@ -357,28 +422,28 @@ function App() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             className="search-input"
-            placeholder="Napíš alebo povedz mýtus (napr. Odkiaľ berieš proteín?)"
-            aria-label="Vyhľadať mýtus"
+            placeholder={t.searchPlaceholder}
+            aria-label={t.searchAria}
           />
           {searchText && (
             <button
               type="button"
               className="clear-btn"
               onClick={() => setSearchText("")}
-              aria-label="Vymazať"
+              aria-label={t.clearAria}
             >
               <X size={18} />
             </button>
           )}
-          <button type="submit" className="submit-btn" aria-label="Hľadať">
+          <button type="submit" className="submit-btn" aria-label={t.searchBtnAria}>
             <Search size={20} />
           </button>
 
-          {isListening && <span className="listening-text">Počúvam ťa...</span>}
+          {isListening && <span className="listening-text">{t.listening}</span>}
         </form>
 
         <button className="random-btn" onClick={showRandom}>
-          <Shuffle size={16} /> Prekvap ma náhodným mýtom
+          <Shuffle size={16} /> {t.random}
         </button>
       </header>
 
@@ -389,11 +454,7 @@ function App() {
           className="glass-panel response-container"
           aria-live="polite"
         >
-          <button
-            className="response-close"
-            onClick={closeMyth}
-            aria-label="Zavrieť odpoveď"
-          >
+          <button className="response-close" onClick={closeMyth} aria-label={t.closeAria}>
             <X size={20} />
           </button>
           <div className="response-header">
@@ -411,7 +472,7 @@ function App() {
 
               <div className="sources-box">
                 <h4 className="sources-title">
-                  <BookOpen size={16} /> Vedecké zdroje:
+                  <BookOpen size={16} /> {t.sources}
                 </h4>
                 <ul className="sources-list">
                   {activeMyth.sources.map((source, idx) => (
@@ -432,17 +493,11 @@ function App() {
 
               {activeMyth.id !== "fallback" && (
                 <div className="action-row">
-                  <button
-                    className="action-btn"
-                    onClick={() => copyAnswer(activeMyth)}
-                  >
-                    <Copy size={16} /> Kopírovať odpoveď
+                  <button className="action-btn" onClick={() => copyAnswer(activeMyth)}>
+                    <Copy size={16} /> {t.copyAnswer}
                   </button>
-                  <button
-                    className="action-btn"
-                    onClick={() => shareMyth(activeMyth)}
-                  >
-                    <Share2 size={16} /> Zdieľať
+                  <button className="action-btn" onClick={() => shareMyth(activeMyth)}>
+                    <Share2 size={16} /> {t.share}
                   </button>
                 </div>
               )}
@@ -457,14 +512,10 @@ function App() {
 
           {relatedMyths.length > 0 && (
             <div className="related">
-              <h4 className="related-title">Pozri aj súvisiace mýty</h4>
+              <h4 className="related-title">{t.related}</h4>
               <div className="related-list">
                 {relatedMyths.map((m) => (
-                  <button
-                    key={m.id}
-                    className="related-chip"
-                    onClick={() => openMyth(m)}
-                  >
+                  <button key={m.id} className="related-chip" onClick={() => openMyth(m)}>
                     <span className="myth-icon">{m.image}</span>
                     <span>{m.query}</span>
                   </button>
@@ -476,14 +527,12 @@ function App() {
       )}
 
       {/* Filtre kategórií */}
-      <nav className="category-bar" aria-label="Kategórie mýtov">
+      <nav className="category-bar" aria-label="Kategórie">
         <button
-          className={`category-chip ${
-            activeCategory === "Všetky" ? "active" : ""
-          }`}
+          className={`category-chip ${activeCategory === "Všetky" ? "active" : ""}`}
           onClick={() => setActiveCategory("Všetky")}
         >
-          Všetky <span className="chip-count">{mythsData.length}</span>
+          {t.all} <span className="chip-count">{mythsData.length}</span>
         </button>
         {categories.map((cat) => (
           <button
@@ -491,14 +540,16 @@ function App() {
             className={`category-chip ${activeCategory === cat ? "active" : ""}`}
             onClick={() => setActiveCategory(cat)}
           >
-            {cat} <span className="chip-count">{categoryCounts[cat] || 0}</span>
+            {catLabel(cat)}{" "}
+            <span className="chip-count">{categoryCounts[cat] || 0}</span>
           </button>
         ))}
       </nav>
 
       <p className="result-count">
         {filteredMyths.length}{" "}
-        {filteredMyths.length === 1 ? "mýtus" : "mýtov"} v databáze
+        {filteredMyths.length === 1 ? t.mythWordOne : t.mythWordMany}{" "}
+        {t.inDatabase}
       </p>
 
       {/* Mriežka mýtov */}
@@ -514,17 +565,12 @@ function App() {
           </button>
         ))}
         {filteredMyths.length === 0 && (
-          <p className="empty-state">
-            Pre „{searchText}“ sa nenašiel žiadny mýtus v tejto kategórii.
-          </p>
+          <p className="empty-state">{t.emptyState(searchText)}</p>
         )}
       </div>
 
-      <footer className="app-footer">
-        Vegan Defender · {mythsData.length} vedecky podložených odpovedí
-      </footer>
+      <footer className="app-footer">{t.footer(mythsData.length)}</footer>
 
-      {/* Toast */}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
